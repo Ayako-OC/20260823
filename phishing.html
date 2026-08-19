@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>フィッシングメールを見分けよう</title>
+<style>
+:root{
+  --bg:#f6f8fc; --card:#fff; --line:#e0e6ef; --text:#202124; --muted:#5f6368;
+  --blue:#1a73e8; --blueSoft:#e8f0fe; --good:#188038; --goodSoft:#e6f4ea;
+  --bad:#c5221f; --badSoft:#fce8e6; --shadow:0 1px 5px rgba(60,64,67,.12);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  line-height:1.7;-webkit-text-size-adjust:100%;
+}
+.wrap{max-width:620px;margin:auto}
+header{background:#fff;border-bottom:1px solid var(--line);padding:18px 14px}
+h1{font-size:25px;line-height:1.35;margin:0 0 5px}
+header p{margin:0;color:var(--muted);font-size:14px}
+main{padding:12px 8px 36px}
+.info{
+  background:#fff;border:1px solid var(--line);border-radius:15px;padding:13px 14px;margin-bottom:12px;font-size:14px
+}
+.progressrow{display:flex;justify-content:space-between;font-weight:700;font-size:14px;margin:0 4px 7px}
+.bar{height:8px;background:#e6ebf2;border-radius:99px;overflow:hidden;margin:0 4px 12px}
+.bar>div{height:100%;background:var(--blue);transition:.25s}
+
+.mail{
+  background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)
+}
+.mailbar{
+  height:52px;background:#f8f9fa;border-bottom:1px solid #eceff3;display:flex;align-items:center;padding:0 10px
+}
+.icon{border:0;background:transparent;font-size:21px;padding:8px;color:#5f6368}
+.mailbar-title{flex:1;text-align:center;font-size:14px;font-weight:700}
+.subject{font-size:21px;line-height:1.45;font-weight:500;padding:16px 16px 8px;word-break:break-word}
+.sender{display:flex;gap:10px;padding:8px 16px 12px}
+.avatar{width:40px;height:40px;border-radius:50%;background:#d2e3fc;color:#174ea6;display:grid;place-items:center;font-weight:800;flex:0 0 auto}
+.senderinfo{flex:1;min-width:0}
+.name{font-weight:700;font-size:15px}
+.address,.to,.date{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.date{margin-top:2px}
+details{margin-top:7px}
+summary{font-size:12px;color:#5f6368;cursor:pointer}
+.details{
+  display:grid;grid-template-columns:62px 1fr;gap:5px 10px;background:#f8f9fa;border:1px solid #edf0f3;
+  border-radius:10px;padding:9px 10px;margin-top:6px;font-size:12px
+}
+.details b{color:#5f6368}
+.body{white-space:pre-wrap;padding:16px;font-size:15px;line-height:1.8;border-top:1px solid #f1f3f4;word-break:break-word}
+.safeurl{padding:8px 14px;background:#fff8e8;border-top:1px solid #f3e2b5;font-size:12px;color:#6d4c00}
+
+.quiz{
+  background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:12px;box-shadow:var(--shadow)
+}
+.case{font-size:13px;color:#174ea6;font-weight:800;margin-bottom:5px}
+.question{font-size:20px;font-weight:800;line-height:1.5;margin:0 0 13px}
+.binary{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.answer{
+  border:2px solid #d5dce7;background:#fff;border-radius:14px;min-height:62px;font-size:18px;font-weight:800;cursor:pointer
+}
+.answer:hover:not(:disabled){background:#f8fbff;border-color:#8ab4f8}
+.answer.correct{background:var(--goodSoft);border-color:#81c995;color:#0d652d}
+.answer.wrong{background:var(--badSoft);border-color:#f28b82;color:#8d1d18}
+.answer:disabled{cursor:default}
+.feedback{display:none;margin-top:13px;border-radius:12px;padding:12px 13px;font-size:14px}
+.feedback.good{display:block;background:var(--goodSoft);border:1px solid #b7dfc2;color:#0d652d}
+.feedback.bad{display:block;background:var(--badSoft);border:1px solid #f2b8b5;color:#8d1d18}
+.next{
+  display:none;width:100%;margin-top:12px;border:0;background:var(--blue);color:#fff;border-radius:12px;
+  min-height:50px;font-size:16px;font-weight:800;cursor:pointer
+}
+.result{display:none;background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 16px;text-align:center}
+.score{font-size:54px;font-weight:900;line-height:1;margin:12px 0 7px}
+.resultmeta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0}
+.metric{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:10px 5px}
+.metric b{display:block;font-size:22px}
+.collect{margin-top:14px;padding:11px;border-radius:11px;font-size:13px;background:#f8fafc;color:#475467}
+.restart{border:0;background:var(--blue);color:#fff;border-radius:12px;min-height:48px;padding:0 20px;font-size:16px;font-weight:800}
+.review{text-align:left;margin-top:20px}
+.reviewitem{border-top:1px solid #edf0f3;padding:11px 0;font-size:14px}
+footer{color:var(--muted);font-size:12px;padding:16px 6px 0}
+@media(max-width:370px){.binary{grid-template-columns:1fr}.answer{min-height:54px}}
+
+/* Inert link-button images used inside the teaching email body */
+.mail-link-button{
+  width:min(100%, 300px);
+  min-height:64px;
+  margin:14px auto;
+  padding:12px 18px;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  font-size:16px;
+  font-weight:800;
+  line-height:1.2;
+  user-select:none;
+  pointer-events:none;
+  box-shadow:0 2px 5px rgba(0,0,0,.16);
+}
+.ja-link{
+  background:#18864b;
+  color:white;
+  border:1px solid #116a3a;
+}
+.ja-link .btn-icon{
+  width:22px;height:22px;border-radius:50%;
+  display:inline-grid;place-items:center;
+  background:rgba(255,255,255,.18);
+}
+.paypay-link{
+  background:#ff003c;
+  color:white;
+  border:1px solid #e00035;
+  border-radius:26px;
+}
+.paypay-link .arrow{
+  margin-left:auto;
+  font-size:24px;
+  font-weight:400;
+}
+
+
+.apple-link{
+  background:linear-gradient(180deg,#ffffff,#f2f2f4);
+  color:#1d1d1f;
+  border:1px solid #d9d9de;
+  box-shadow:0 2px 5px rgba(0,0,0,.10);
+}
+.apple-link .apple-mark{
+  font-size:20px;
+  line-height:1;
+}
+
+
+
+.btn-textblock{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  text-align:left;
+  gap:4px;
+  min-width:0;
+  flex:1;
+}
+.btn-label{
+  font-size:16px;
+  font-weight:800;
+  line-height:1.2;
+}
+.btn-url{
+  font-size:12px;
+  line-height:1.35;
+  font-weight:600;
+  opacity:.92;
+  letter-spacing:0;
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  max-width:100%;
+  word-break:break-all;
+}
+.ja-link .btn-url,
+.paypay-link .btn-url{
+  color:rgba(255,255,255,.92);
+}
+.apple-link .btn-url{
+  color:rgba(29,29,31,.82);
+}
+.paypay-link .btn-textblock{
+  align-items:flex-start;
+}
+.paypay-link .arrow{
+  flex:0 0 auto;
+}
+
+
+
+/* URL visibility fix */
+.mail-link-button .btn-textblock{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start !important;
+  justify-content:center !important;
+  gap:3px !important;
+  min-width:0 !important;
+  flex:1 1 auto !important;
+}
+.mail-link-button .btn-label{
+  display:block !important;
+  font-size:16px !important;
+  font-weight:800 !important;
+  line-height:1.25 !important;
+}
+.mail-link-button .btn-url{
+  display:block !important;
+  visibility:visible !important;
+  font-size:13px !important;
+  font-weight:600 !important;
+  line-height:1.35 !important;
+  opacity:1 !important;
+  white-space:normal !important;
+  word-break:break-all !important;
+  overflow:visible !important;
+  max-width:100% !important;
+}
+.ja-link .btn-url,
+.paypay-link .btn-url{
+  color:#f2f6f4 !important;
+}
+.apple-link .btn-url{
+  color:#6e6e73 !important;
+}
+
+.home-link{display:inline-flex;text-decoration:none;color:#174ea6;background:#eef4ff;border:1px solid #cfddf5;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:800;margin-bottom:10px}\n</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>フィッシングメールを見分けよう</h1>
+    <p>メールを読んで「あやしい」「あやしくない」のどちらかを選んでください。</p>
+  </div>
+</header>
+<main class="wrap"><a class="home-link" href="index.html">← 体験授業トップへ</a>
+  <div class="info">
+    全5問です。実際に受信されたメールを教材化し、受信者情報と危険なURLは匿名化・無害化しています。
+    <span id="collectionNotice"></span>
+  </div>
+
+  <div id="play">
+    <div class="progressrow"><span id="counter"></span><span id="running"></span></div>
+    <div class="bar"><div id="bar"></div></div>
+
+    <section class="mail">
+      <div class="mailbar">
+        <button class="icon" type="button">←</button>
+        <div class="mailbar-title">受信メール</div>
+        <button class="icon" type="button">⋮</button>
+      </div>
+      <div class="subject" id="subject"></div>
+      <div class="sender">
+        <div class="avatar" id="avatar"></div>
+        <div class="senderinfo">
+          <div class="name" id="display"></div>
+          <div class="address" id="from"></div>
+          <div class="to" id="to"></div>
+          <div class="date" id="date"></div>
+          <details>
+            <summary>メール詳細を表示</summary>
+            <div class="details">
+              <b>送信元</b><span id="detailFrom"></span>
+              <b>認証</b><span id="auth"></span>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div class="body" id="body"></div>
+      <div class="safeurl">※ URLの「.」は一部 [.] に置き換え、クリックできない教材用表記にしています。</div>
+    </section>
+
+    <section class="quiz" id="quiz">
+      <div class="case" id="case"></div>
+      <div class="question">このメールは、あやしいと思いますか？</div>
+      <div class="binary">
+        <button class="answer" data-value="あやしい">あやしい</button>
+        <button class="answer" data-value="あやしくない">あやしくない</button>
+      </div>
+      <div class="feedback" id="feedback"></div>
+      <button class="next" id="next">次のメールへ</button>
+    </section>
+  </div>
+
+  <section id="result" class="result">
+    <div style="font-size:13px;color:#174ea6;font-weight:800">RESULT</div>
+    <h2>終了</h2>
+    <div class="score"><span id="score">0</span>/5</div>
+    <div id="message"></div>
+    <div class="resultmeta">
+      <div class="metric"><b id="correct"></b>正解</div>
+      <div class="metric"><b id="wrong"></b>不正解</div>
+      <div class="metric"><b id="rate"></b>正答率</div>
+    </div>
+    <div class="collect" id="collectStatus"></div>
+    <button class="restart" id="restart">もう一度挑戦</button>
+    <div class="review"><h3>振り返り</h3><div id="review"></div></div>
+  </section>
+
+  <footer>
+    本教材は判断練習用です。実際のメールでは、表示名だけでなく送信元ドメイン、リンク先、認証結果、文面を総合して確認してください。
+  </footer>
+</main>
+
+<script>
+const MAILS = [{"id": "ja", "case": "JAネットバンクを名乗るメール", "mail": {"display": "ＪＡネットバンク", "from": "no-reply@transcallglobal[.]com", "subject": "※要返信 登録個人情報再確認のお願い", "auth": "SPF: pass", "date": "2024/11/23 18:14", "to": "student@example.jp", "body": "ＪＡネットバンクつきをご利用いただきありがとうございます。\n\n現在、当行にでは金融庁指導のもと、マネロン等対策の一環として、お取引の内容、状況等に応じて、過去に確認した氏名・住所・生年月日・ご職業や、取引の目的等について、再度確認をさせていただいております。\nお手数おかけしますが、下記の内容の提出にご協力ください。\n\nhttps://guoanlvyou[.]com\n\nご確認をいただけない場合、セキュリティ上の観点からご利用制限をかけさせていただくことを予めご了承下さい。\n\nお客様にはご迷惑、ご心配をお掛けし、誠に申し訳ございません\n－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－\n\nご不明な点がございましたら、下記までご連絡ください。\n連絡先 ０１２０－０５８－０９８\nこれからもＪＡたかつきをよろしくお願いします。", "body_html": "ＪＡネットバンクつきをご利用いただきありがとうございます。<br><br>現在、当行にでは金融庁指導のもと、マネロン等対策の一環として、お取引の内容、状況等に応じて、過去に確認した氏名・住所・生年月日・ご職業や、取引の目的等について、再度確認をさせていただいております。<br>お手数おかけしますが、下記の内容の提出にご協力ください。<br><br><div class=\"mail-link-button ja-link\" role=\"img\" aria-label=\"個人情報を再確認するリンクボタン\"><span class=\"btn-icon\">✓</span><span class=\"btn-textblock\"><span class=\"btn-label\">個人情報を再確認する</span><span class=\"btn-url\">guoanlvyou[.]com</span></span></div><br><br>ご確認をいただけない場合、セキュリティ上の観点からご利用制限をかけさせていただくことを予めご了承下さい。<br><br>お客様にはご迷惑、ご心配をお掛けし、誠に申し訳ございません<br>－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－<br><br>ご不明な点がございましたら、下記までご連絡ください。<br>連絡先 ０１２０－０５８－０９８<br>これからもＪＡたかつきをよろしくお願いします。"}, "expected": "あやしい", "explain": "あやしいメールです。JAを名乗っていますが、送信元は transcallglobal[.]com、本文の誘導先は guoanlvyou[.]com です。また、確認しない場合は利用制限をかけると急がせています。SPFがpassでも、transcallglobal[.]comとしての送信が認証されたという意味で、JAの正規メールである証明にはなりません。"}, {"id": "paypay", "case": "PayPayを名乗るメール", "mail": {"display": "Paypay", "from": "ckkct211@costcojapan[.]jp", "subject": "11月限定！最大10,000円相当のPayPayポイントをゲットするチャンス！", "auth": "SPF: softfail", "date": "2024/11/23 17:53", "to": "student@example.jp", "body": "PayPay キャンペーン\n\n今すぐ最大10,000円相当のPayPayポイントをゲット！\n\nいつもPayPayをご利用いただき、ありがとうございます。\n\n10月限定の特別キャンペーンで、最大10,000円相当のPayPayポイントが当たるチャンス！\n日常のお買い物や支払いで簡単に参加できます。\n\nキャンペーン概要\n2024年11月01日（金）～11月31日（土）\n\n・PayPayを使うだけで、自動的に抽選に参加。最大10,000円分のポイントが当たるチャンス！\n・便利店やレストランなど、日常生活のあらゆる場面でPayPayを使って、簡単に参加できます。\n・毎日お買い物をするたびに、チャンスが広がります。\n\n［今すぐ詳細を見る］\nリンク先：wulaimaoya[.]com\n\nポイント付与方法\nキャンペーン終了後、当選者にはPayPayアプリ内で通知されます。ポイントは11月中旬に付与されます。\n\n注意事項\n本キャンペーンは予告なく変更・終了する場合がございます。\n付与されたポイントはPayPay残高にチャージされますが、出金はできません。\n\nPayPay株式会社 | サポートセンター |\nsupport@paypay.ne.jp\n\nこのメールは自動送信されています。返信はできませんのでご了承ください。", "body_html": "PayPay キャンペーン<br><br>今すぐ最大10,000円相当のPayPayポイントをゲット！<br><br>いつもPayPayをご利用いただき、ありがとうございます。<br><br>10月限定の特別キャンペーンで、最大10,000円相当のPayPayポイントが当たるチャンス！<br>日常のお買い物や支払いで簡単に参加できます。<br><br>キャンペーン概要<br>2024年11月01日（金）～11月31日（土）<br><br>・PayPayを使うだけで、自動的に抽選に参加。最大10,000円分のポイントが当たるチャンス！<br>・便利店やレストランなど、日常生活のあらゆる場面でPayPayを使って、簡単に参加できます。<br>・毎日お買い物をするたびに、チャンスが広がります。<br><br><div class=\"mail-link-button paypay-link\" role=\"img\" aria-label=\"今すぐ詳細を見るリンクボタン\"><span class=\"btn-textblock\"><span class=\"btn-label\">今すぐ詳細を見る</span><span class=\"btn-url\">wulaimaoya[.]com</span></span><span class=\"arrow\">›</span></div><br><br>ポイント付与方法<br>キャンペーン終了後、当選者にはPayPayアプリ内で通知されます。ポイントは11月中旬に付与されます。<br><br>注意事項<br>本キャンペーンは予告なく変更・終了する場合がございます。<br>付与されたポイントはPayPay残高にチャージされますが、出金はできません。<br><br>PayPay株式会社 | サポートセンター |<br>support@paypay.ne.jp<br>このメールは自動送信されています。返信はできませんのでご了承ください。"}, "expected": "あやしい", "explain": "あやしいメールです。PayPayを名乗りながら送信元は costcojapan[.]jp、リンク先は wulaimaoya[.]com です。さらに、件名は11月限定なのに本文は10月限定、期間には存在しない11月31日が書かれています。"}, {"id": "etax", "case": "国税庁・e-Taxを名乗るメール", "mail": {"display": "国税庁", "from": "nta-Administrator-…@yatp[.]com", "subject": "e-Tax税務署からの【未払い税金のお知らせ】", "auth": "SPF: none", "date": "2024/11/29 22:15", "to": "student@example.jp", "body": "受信者様\n\ne-Taxをご利用いただきありがとうございます。\n\nあなたの所得税と滞納金について、これまで自主的に納付されるよう催促してきましたが、まだ納付されておりません。最終期限までに納付がない場合、税法により不動産、自動車などの登記登録財産や給料、売掛金などの債権などの差押処分に着手致します。\n\n納税確認番号:****4520\n滞納金合計:1280円\n納付期限:\n2024/12/02\n最終期限: 2024/12/05（支払期日の延長不可）\n\n［お支払いへ⇒］\nリンク先：gdwwzzc[.]com\n\n※ 本メールは、「国税電子申告・納税システム（e-Tax）」にメールアドレスを登録いただいた方へ配信しております。\nなお、本メールアドレスは送信専用のため、返信を受け付けておりません。ご了承ください。\n----------------------------------------------------------\n発行元：国税庁\nCopyright (C) NATIONAL TAX AGENCY ALL Rights Reserved.2024\n----------------------------------------------------------", "body_html": "受信者様<br><br>e-Taxをご利用いただきありがとうございます。<br><br>あなたの所得税と滞納金について、これまで自主的に納付されるよう催促してきましたが、まだ納付されておりません。最終期限までに納付がない場合、税法により不動産、自動車などの登記登録財産や給料、売掛金などの債権などの差押処分に着手致します。<br><br>納税確認番号:****4520<br>滞納金合計:1280円<br>納付期限:<br>2024/12/02<br>最終期限: 2024/12/05（支払期日の延長不可）<br><br>［お支払いへ⇒］<br>リンク先：gdwwzzc[.]com<br><br>※ 本メールは、「国税電子申告・納税システム（e-Tax）」にメールアドレスを登録いただいた方へ配信しております。<br>なお、本メールアドレスは送信専用のため、返信を受け付けておりません。ご了承ください。<br>----------------------------------------------------------<br>発行元：国税庁<br>Copyright (C) NATIONAL TAX AGENCY ALL Rights Reserved.2024<br>----------------------------------------------------------"}, "expected": "あやしい", "explain": "あやしいメールです。国税庁を名乗っていますが、送信元は yatp[.]com、SPFはnoneです。本文では差押処分や最終期限を強調して支払いを急がせ、不審な別ドメインへ誘導しています。"}, {"id": "jal", "case": "JALを名乗るメール", "mail": {"display": "JALショッピング", "from": "JAL-Insider@xkxaoao[.]com", "subject": "受信者様、次年度JALカード年会費無料のご案内", "auth": "SPF: pass", "date": "2024/11/11 10:12", "to": "student@example.jp", "body": "受信者 様、\n\nいつもJALカードをご利用いただき、誠にありがとうございます。\n\nJCB または アメリカン・エキスプレス（AMEX）カードをお持ちの方に、次年度の年会費が無料になる特別なオファーをご案内いたします。この特典を受け取るには、48時間以内にオンラインでお申し込みください。\n\n▼ 年会費無料を今すぐ申し込む\nhttps://www-jal-co.cansed[.]com/?offer=AvdcsULVbDemZRPj6njt15aGWe8dx1cC\n\nお申し込みは48時間以内に完了する必要がございます。この絶好のチャンスをお見逃しなく、今すぐお手続きください！\n\n何かご不明な点がございましたら、カスタマーサービスまでご連絡ください。\n\n日本航空株式会社\n〒140-8656 東京都品川区東品川2-4-11\n電話：0120-747-907（携帯電話／海外からは03-5460-5131）\nCopyright Japan Airlines. All rights reserved.", "body_html": "受信者 様、<br><br>いつもJALカードをご利用いただき、誠にありがとうございます。<br><br>JCB または アメリカン・エキスプレス（AMEX）カードをお持ちの方に、次年度の年会費が無料になる特別なオファーをご案内いたします。この特典を受け取るには、48時間以内にオンラインでお申し込みください。<br><br>▼ 年会費無料を今すぐ申し込む<br>https://www-jal-co.cansed[.]com/?offer=AvdcsULVbDemZRPj6njt15aGWe8dx1cC<br><br>お申し込みは48時間以内に完了する必要がございます。この絶好のチャンスをお見逃しなく、今すぐお手続きください！<br><br>何かご不明な点がございましたら、カスタマーサービスまでご連絡ください。<br><br>日本航空株式会社<br>〒140-8656 東京都品川区東品川2-4-11<br>電話：0120-747-907（携帯電話／海外からは03-5460-5131）<br>Copyright Japan Airlines. All rights reserved."}, "expected": "あやしい", "explain": "あやしいメールです。送信元は xkxaoao[.]com、リンクは www-jal-co.cansed[.]com で、中心となるドメインは cansed[.]com です。48時間以内と急がせています。SPFはpassですが、xkxaoao[.]comからの送信として認証されたという意味です。"}, {"id": "apple", "case": "Appleからのサブスクリプション料金改定メール", "mail": {"display": "Apple", "from": "no_reply@email.apple.com", "subject": "サブスクリプション料金の改定", "auth": "SPF: pass / DKIM: pass / DMARC: pass", "date": "2026/08/16 06:36", "to": "student@example.jp", "body": "サブスクリプション料金の改定\n\n50GBストレージ付きiCloud+\n1か月\n新料金：¥180 — 旧料金：¥150\n2026年9月11日以降\n\n受信者様\n\n50GBストレージ付きiCloud+のサブスクリプションにご登録いただきありがとうございます。このサブスクリプションの今後の変更についてお知らせいたします。\n\nAppleは、月額¥150から月額¥180へこのサブスクリプション料金の引き上げを行います。遅くとも1日前までにキャンセルしない限り、9月11日以降、サブスクリプションは月額¥180で自動更新されます。\n\n詳細およびキャンセル：\nsetup.icloud[.]com/email/prefs/storage\n\n今後ともよろしくお願いいたします。\nApple\n\nApple Account\nbuy.itunes.apple[.]com\n\n購入履歴\nfinance-app.itunes.apple[.]com\n\n販売条件・プライバシーポリシー\nwww.apple[.]com\n\nCopyright © 2026 iTunes K.K.", "body_html": "サブスクリプション料金の改定<br><br>50GBストレージ付きiCloud+<br>1か月<br>新料金：¥180 — 旧料金：¥150<br>2026年9月11日以降<br><br>受信者様<br><br>50GBストレージ付きiCloud+のサブスクリプションにご登録いただきありがとうございます。このサブスクリプションの今後の変更についてお知らせいたします。<br><br>Appleは、月額¥150から月額¥180へこのサブスクリプション料金の引き上げを行います。遅くとも1日前までにキャンセルしない限り、9月11日以降、サブスクリプションは月額¥180で自動更新されます。<br><br>詳細およびキャンセル：<div class=\"mail-link-button apple-link\" role=\"img\" aria-label=\"iCloud設定リンク\"><span class=\"apple-mark\"></span><span class=\"btn-textblock\"><span class=\"btn-label\">iCloud設定を確認する</span><span class=\"btn-url\">setup.icloud[.]com/email/prefs/storage</span></span></div><br><br>今後ともよろしくお願いいたします。<br>Apple<br><br>Apple Account<br><div class=\"mail-link-button apple-link\" role=\"img\" aria-label=\"Apple Accountリンク\"><span class=\"apple-mark\"></span><span class=\"btn-textblock\"><span class=\"btn-label\">Apple Account</span><span class=\"btn-url\">buy.itunes.apple[.]com</span></span></div><br><br>購入履歴<br><div class=\"mail-link-button apple-link\" role=\"img\" aria-label=\"購入履歴リンク\"><span class=\"apple-mark\"></span><span class=\"btn-textblock\"><span class=\"btn-label\">購入履歴を確認する</span><span class=\"btn-url\">finance-app.itunes.apple[.]com</span></span></div><br><br>販売条件・プライバシーポリシー<br><div class=\"mail-link-button apple-link\" role=\"img\" aria-label=\"Apple公式サイトリンク\"><span class=\"apple-mark\"></span><span class=\"btn-textblock\"><span class=\"btn-label\">Apple公式サイト</span><span class=\"btn-url\">www.apple[.]com</span></span></div><br><br>Copyright © 2026 iTunes K.K."}, "expected": "あやしくない", "explain": "この提供された実例は、あやしくない正規メールとして扱います。送信元は email.apple.com で、SPF・DKIM・DMARCはいずれもpassです。本文の主要リンクも setup.icloud.com、itunes.apple.com、apple.com などApple系ドメインです。ただし、実際の判断では認証結果だけでなく、送信元・リンク先・文面を総合して確認します。"}];
+
+/*
+  結果をGoogleスプレッドシートへ収集する場合：
+  Google Apps ScriptをWebアプリとして公開し、そのURLを下の "" の中へ貼り付けてください。
+  例: const RESULT_ENDPOINT = "https://script.google.com/macros/s/XXXXXXXX/exec";
+*/
+const RESULT_ENDPOINT = "";
+
+let order = [];
+let pos = 0;
+let score = 0;
+let answered = false;
+let history = [];
+const sessionId = (crypto.randomUUID ? crypto.randomUUID() : "s-" + Date.now() + "-" + Math.random().toString(36).slice(2));
+const group = new URLSearchParams(location.search).get("group") || "";
+
+const $ = id => document.getElementById(id);
+
+function shuffle(a){
+  const x=[...a];
+  for(let i=x.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [x[i],x[j]]=[x[j],x[i]];
+  }
+  return x;
+}
+function start(){
+  order=shuffle(MAILS.map((_,i)=>i));
+  pos=0;score=0;answered=false;history=[];
+  $("play").style.display="block";
+  $("result").style.display="none";
+  $("collectionNotice").textContent = RESULT_ENDPOINT ? " 回答結果は匿名IDで集計されます。" : "";
+  render();
+}
+function render(){
+  answered=false;
+  const q=MAILS[order[pos]];
+  $("counter").textContent=`問題 ${pos+1} / ${MAILS.length}`;
+  $("running").textContent=`正解 ${score}`;
+  $("bar").style.width=`${(pos/MAILS.length)*100}%`;
+  $("case").textContent=q.case;
+  $("subject").textContent=q.mail.subject;
+  $("display").textContent=q.mail.display;
+  $("from").textContent=q.mail.from;
+  $("detailFrom").textContent=q.mail.from;
+  $("to").textContent="to: "+q.mail.to;
+  $("date").textContent=q.mail.date;
+  $("auth").textContent=q.mail.auth;
+  $("body").innerHTML=q.mail.body_html || escapeHtml(q.mail.body);
+  $("avatar").textContent=(q.mail.display||"?").trim().charAt(0);
+  $("feedback").className="feedback";
+  $("feedback").textContent="";
+  $("next").style.display="none";
+  $("next").textContent=pos===MAILS.length-1 ? "結果を見る" : "次のメールへ";
+  document.querySelectorAll(".answer").forEach(b=>{
+    b.disabled=false;b.className="answer";
+  });
+}
+function choose(value, btn){
+  if(answered)return;
+  answered=true;
+  const q=MAILS[order[pos]];
+  const ok=value===q.expected;
+  if(ok)score++;
+  document.querySelectorAll(".answer").forEach(b=>{
+    b.disabled=true;
+    if(b.dataset.value===q.expected)b.classList.add("correct");
+  });
+  if(!ok)btn.classList.add("wrong");
+  $("feedback").className="feedback "+(ok?"good":"bad");
+  $("feedback").innerHTML="<strong>"+(ok?"正解。":"不正解。")+"</strong> "+q.explain;
+  history.push({
+    id:q.id, case:q.case, selected:value, expected:q.expected, correct:ok
+  });
+  $("running").textContent=`正解 ${score}`;
+  $("next").style.display="block";
+  $("feedback").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+document.querySelectorAll(".answer").forEach(btn=>{
+  btn.addEventListener("click",()=>choose(btn.dataset.value,btn));
+});
+$("next").addEventListener("click",()=>{
+  if(!answered)return;
+  if(pos<MAILS.length-1){
+    pos++;render();
+    window.scrollTo({top:0,behavior:"smooth"});
+  }else finish();
+});
+async function sendResult(){
+  if(!RESULT_ENDPOINT){
+    $("collectStatus").textContent="この版では結果送信先が未設定です。端末内で採点のみ行っています。";
+    return;
+  }
+  $("collectStatus").textContent="匿名の回答結果を送信しています…";
+  const answerMap={};
+  history.forEach(h=>answerMap[h.id]={selected:h.selected,correct:h.correct});
+  const payload={
+    session_id:sessionId,
+    group:group,
+    client_timestamp:new Date().toISOString(),
+    score:score,
+    total:MAILS.length,
+    answers:answerMap
+  };
+  try{
+    await fetch(RESULT_ENDPOINT,{
+      method:"POST",
+      mode:"no-cors",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify(payload)
+    });
+    $("collectStatus").textContent="匿名の回答結果を送信しました。";
+  }catch(e){
+    $("collectStatus").textContent="結果を送信できませんでした。通信環境を確認してください。";
+  }
+}
+function finish(){
+  $("play").style.display="none";
+  $("result").style.display="block";
+  const rate=Math.round(score/MAILS.length*100);
+  $("score").textContent=score;
+  $("correct").textContent=score;
+  $("wrong").textContent=MAILS.length-score;
+  $("rate").textContent=rate+"%";
+  $("message").textContent=
+    rate===100 ? "全問正解です。正規メールとフィッシングメールの違いをよく確認できています。" :
+    rate>=80 ? "よくできました。迷ったメールの送信元とリンク先をもう一度確認してみましょう。" :
+    "表示名だけでなく、送信元・リンク先・文面・認証結果を組み合わせて確認してみましょう。";
+  const r=$("review");r.innerHTML="";
+  history.forEach((h,i)=>{
+    const d=document.createElement("div");
+    d.className="reviewitem";
+    d.innerHTML=`<strong>${h.correct?"○":"×"} ${i+1}. ${escapeHtml(h.case)}</strong><br>
+      選択：${escapeHtml(h.selected)} ／ 正解：${escapeHtml(h.expected)}`;
+    r.appendChild(d);
+  });
+  sendResult();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+$("restart").addEventListener("click",start);
+start();
+</script>
+</body>
+</html>
